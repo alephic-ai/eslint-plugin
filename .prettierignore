@@ -1,0 +1,4 @@
+/README.md 
+/docs/rules/*.md
+/.changeset/*.md
+/pnpm-lock.yaml

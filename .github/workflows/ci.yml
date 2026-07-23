@@ -1,0 +1,80 @@
+name: CI
+
+# `pull_request` covers branch and fork PRs; `push` is limited to main so
+# those pushes don't also run CI as a push. PR merges emit a `push` on main,
+# which gates and triggers the release job — don't remove it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm ci
+      - run: pnpm prettier --check .
+      - run: pnpm tsc6
+      - run: pnpm eslint .
+      - run: pnpm test
+      # The doc generator loads the plugin through its package `exports`
+      # (dist/), so it needs the build output.
+      - run: pnpm build
+      - run: pnpm eslint-doc-generator --check
+
+  # Publishing runs only after the full CI gate passes on main. The
+  # `chore: release` PR itself shows no checks (it's pushed with
+  # GITHUB_TOKEN, which never triggers workflows), but its merge commit is
+  # fully checked here before anything reaches a registry. npmjs trusted
+  # publishing is bound to this workflow file (ci.yml).
+  release:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # One release at a time; a queued release is replaced by a newer one, a
+    # running publish is never cancelled.
+    concurrency: release-${{ github.ref }}
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - name: Upgrade npm # npm >= 11.5.1 is required for trusted publishing (OIDC) to npmjs.
+        run: npm install -g npm@latest
+      - run: pnpm ci
+      - run: pnpm build
+      - name: Create release PR or publish to npmjs
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          commit: 'chore: release'
+          publish: pnpm changeset publish
+          title: 'chore: release'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to GitHub Packages for internal usage # @alephic-ai:registry=https://npm.pkg.github.com
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          # Single quotes are intentional: the literal `${NODE_AUTH_TOKEN}`
+          # lands in npmrc and npm expands it from the env at publish time.
+          npm config set //npm.pkg.github.com/:_authToken '${NODE_AUTH_TOKEN}'
+
+          # --tag latest matches what `changeset publish` used on npmjs; npm
+          # refuses to publish prerelease versions without an explicit tag.
+          npm publish --registry=https://npm.pkg.github.com --ignore-scripts --tag latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
