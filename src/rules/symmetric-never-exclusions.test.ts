@@ -126,6 +126,38 @@ ruleTester.run('symmetric-never-exclusions', rule, {
     },
     {
       code: `
+        interface A { kind: 'a'; extra?: never }
+        interface B { kind: 'b'; other(): void }
+        type Union = A | B
+      `,
+      errors: [{ messageId: 'missingNeverExclusion' }],
+      // A method with an unrelated name must not suppress the report, and the
+      // fix must insert cleanly after a method signature.
+      name: 'asymmetric — member with an unrelated method still reported',
+      output: `
+        interface A { kind: 'a'; extra?: never }
+        interface B { kind: 'b'; other(): void; extra?: never }
+        type Union = A | B
+      `,
+    },
+    {
+      code: `
+        interface A { kind: 'a'; 'extra'?: never }
+        interface B { kind: 'b' }
+        type Union = A | B
+      `,
+      errors: [{ messageId: 'missingNeverExclusion' }],
+      // A string-literal key declares the same property as its identifier
+      // form, so it counts as an exclusion.
+      name: 'asymmetric — exclusion declared with a string-literal key',
+      output: `
+        interface A { kind: 'a'; 'extra'?: never }
+        interface B { kind: 'b'; extra?: never }
+        type Union = A | B
+      `,
+    },
+    {
+      code: `
         interface A {
           kind: 'a'
           extra?: never
@@ -224,6 +256,32 @@ ruleTester.run('symmetric-never-exclusions', rule, {
       // Imported members can't be resolved in this file — the rule skips them
       // (and with only one resolvable member, checks nothing).
       name: 'union member imported from another file is skipped',
+    },
+    {
+      code: `
+        interface A { kind: 'a'; extra?: never }
+        interface B { kind: 'b'; extra(): void }
+        type Union = A | B
+      `,
+      // The method declares `extra` — autofixing `extra?: never` beside it
+      // would produce a conflicting declaration.
+      name: 'member implements the excluded property as a method',
+    },
+    {
+      code: `
+        interface A { kind: 'a'; extra?: never }
+        interface B { kind: 'b'; get extra(): string }
+        type Union = A | B
+      `,
+      name: 'member implements the excluded property as an accessor',
+    },
+    {
+      code: `
+        interface A { kind: 'a'; extra?: never }
+        interface B { kind: 'b'; 'extra': string }
+        type Union = A | B
+      `,
+      name: 'member declares the excluded property with a string-literal key',
     },
   ],
 })

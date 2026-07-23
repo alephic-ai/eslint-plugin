@@ -110,12 +110,27 @@ export const rule = createRule({
       const realProps = new Set<string>()
 
       for (const prop of properties) {
-        if (prop.type !== AST_NODE_TYPES.TSPropertySignature) continue
-        if (prop.key.type !== AST_NODE_TYPES.Identifier) continue
-
-        const propName = prop.key.name
+        // Method signatures (including get/set accessors) and string-literal
+        // keys declare the property just as much as `x: T` does — missing
+        // them here would autofix a conflicting `x?: never` next to them.
+        if (
+          prop.type !== AST_NODE_TYPES.TSPropertySignature &&
+          prop.type !== AST_NODE_TYPES.TSMethodSignature
+        ) {
+          continue
+        }
+        const { key } = prop
+        const propName =
+          key.type === AST_NODE_TYPES.Identifier
+            ? key.name
+            : key.type === AST_NODE_TYPES.Literal &&
+                typeof key.value === 'string'
+              ? key.value
+              : null
+        if (propName === null) continue
 
         if (
+          prop.type === AST_NODE_TYPES.TSPropertySignature &&
           prop.optional &&
           prop.typeAnnotation?.typeAnnotation.type ===
             AST_NODE_TYPES.TSNeverKeyword
