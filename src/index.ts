@@ -1,9 +1,9 @@
 import type { TSESLint } from '@typescript-eslint/utils'
 
 import packageJson from '../package.json' with { type: 'json' }
-import { rule as symmetricNeverExclusions } from './rules/symmetric-never-exclusions'
-import { rule as testExercisesCode } from './rules/test-exercises-code'
-import { rule as useStepExportsOnly } from './rules/use-step-exports-only'
+import { rule as symmetricNeverExclusions } from './rules/symmetric-never-exclusions.ts'
+import { rule as testExercisesCode } from './rules/test-exercises-code.ts'
+import { rule as useStepExportsOnly } from './rules/use-step-exports-only.ts'
 
 const rules = {
   'symmetric-never-exclusions': symmetricNeverExclusions,

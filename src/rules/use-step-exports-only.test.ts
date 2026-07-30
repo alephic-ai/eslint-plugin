@@ -1,7 +1,7 @@
 import { RuleTester } from '@typescript-eslint/rule-tester'
 import { afterAll, describe, it } from 'vitest'
 
-import { rule } from './use-step-exports-only'
+import { rule } from './use-step-exports-only.ts'
 
 RuleTester.afterAll = afterAll
 RuleTester.describe = describe

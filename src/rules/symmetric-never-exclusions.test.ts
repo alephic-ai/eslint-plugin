@@ -1,7 +1,7 @@
 import { RuleTester } from '@typescript-eslint/rule-tester'
 import { afterAll, describe, it } from 'vitest'
 
-import { rule } from './symmetric-never-exclusions'
+import { rule } from './symmetric-never-exclusions.ts'
 
 RuleTester.afterAll = afterAll
 RuleTester.describe = describe

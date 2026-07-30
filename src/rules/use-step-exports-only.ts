@@ -9,7 +9,7 @@
 
 import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils'
 
-import { createRule } from './create-rule'
+import { createRule } from './create-rule.ts'
 
 // Walk `program.body` once and classify every top-level identifier binding.
 // Imports go into `importedNames`; local declarations split into step
