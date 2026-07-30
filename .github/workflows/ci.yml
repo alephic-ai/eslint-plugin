@@ -46,7 +46,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      packages: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v7
@@ -68,15 +67,3 @@ jobs:
           title: 'chore: release'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish to GitHub Packages for internal usage # @alephic-ai:registry=https://npm.pkg.github.com
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          # Single quotes are intentional: the literal `${NODE_AUTH_TOKEN}`
-          # lands in npmrc and npm expands it from the env at publish time.
-          npm config set //npm.pkg.github.com/:_authToken '${NODE_AUTH_TOKEN}'
-
-          # --tag latest matches what `changeset publish` used on npmjs; npm
-          # refuses to publish prerelease versions without an explicit tag.
-          npm publish --registry=https://npm.pkg.github.com --ignore-scripts --tag latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

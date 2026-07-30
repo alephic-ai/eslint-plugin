@@ -19,7 +19,7 @@ const plugin = {
   configs: {} as { recommended: TSESLint.FlatConfig.ConfigArray },
   meta: {
     name: packageJson.name,
-    namespace: '@alephic-ai',
+    namespace: '@alephic',
     version: packageJson.version,
   },
   rules,
@@ -28,13 +28,13 @@ const plugin = {
 Object.assign(plugin.configs, {
   recommended: [
     {
-      name: '@alephic-ai/recommended',
-      plugins: { '@alephic-ai': plugin },
+      name: '@alephic/recommended',
+      plugins: { '@alephic': plugin },
       rules: {
-        '@alephic-ai/symmetric-never-exclusions': 'error',
-        '@alephic-ai/test-exercises-code': 'error',
-        '@alephic-ai/use-step-exports-only': 'error',
-      } satisfies Record<`@alephic-ai/${keyof typeof rules}`, 'error' | 'off'>, // prevent rules from being forgotten
+        '@alephic/symmetric-never-exclusions': 'error',
+        '@alephic/test-exercises-code': 'error',
+        '@alephic/use-step-exports-only': 'error',
+      } satisfies Record<`@alephic/${keyof typeof rules}`, 'error' | 'off'>, // prevent rules from being forgotten
     },
   ] satisfies TSESLint.FlatConfig.ConfigArray,
 })
