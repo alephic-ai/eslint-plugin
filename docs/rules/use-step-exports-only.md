@@ -1,4 +1,4 @@
-# @alephic-ai/use-step-exports-only
+# @alephic/use-step-exports-only
 
 📝 In files that contain a 'use step' function, only step functions and type-only exports are allowed, and module-level statements must be pure. Non-step exports and side-effectful top-level statements survive the Workflow DevKit's step-stubbing and drag the file's import chain into the workflow VM bundle.
 

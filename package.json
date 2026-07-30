@@ -1,5 +1,5 @@
 {
-  "name": "@alephic-ai/eslint-plugin",
+  "name": "@alephic/eslint-plugin",
   "version": "0.1.0",
   "description": "Alephic's custom ESLint rules",
   "keywords": [

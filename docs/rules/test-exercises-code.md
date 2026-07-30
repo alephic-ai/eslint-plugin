@@ -1,4 +1,4 @@
-# @alephic-ai/test-exercises-code
+# @alephic/test-exercises-code
 
 📝 Require test describe/it titles to name identifiers that the file actually references, so tests exercise the real code instead of a parallel reimplementation.
 

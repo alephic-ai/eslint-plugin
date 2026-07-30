@@ -1,4 +1,4 @@
-# @alephic-ai/symmetric-never-exclusions
+# @alephic/symmetric-never-exclusions
 
 📝 Enforce symmetric ?: never exclusions in discriminated union types.
 

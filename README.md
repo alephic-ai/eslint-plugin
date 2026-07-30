@@ -1,11 +1,11 @@
-# @alephic-ai/eslint-plugin
+# @alephic/eslint-plugin
 
 Alephic's custom ESLint rules.
 
 ## Installation
 
 ```bash
-pnpm add -D @alephic-ai/eslint-plugin
+pnpm add -D @alephic/eslint-plugin
 ```
 
 Requires ESLint >= 9 (flat config).
@@ -14,7 +14,7 @@ Requires ESLint >= 9 (flat config).
 
 ```js
 // eslint.config.js
-import alephic from '@alephic-ai/eslint-plugin'
+import alephic from '@alephic/eslint-plugin'
 import { defineConfig } from 'eslint/config'
 
 export default defineConfig([...alephic.configs.recommended])
@@ -23,14 +23,14 @@ export default defineConfig([...alephic.configs.recommended])
 Or configure rules individually:
 
 ```js
-import alephic from '@alephic-ai/eslint-plugin'
+import alephic from '@alephic/eslint-plugin'
 import { defineConfig } from 'eslint/config'
 
 export default defineConfig([
   {
-    plugins: { '@alephic-ai': alephic },
+    plugins: { '@alephic': alephic },
     rules: {
-      '@alephic-ai/symmetric-never-exclusions': 'error',
+      '@alephic/symmetric-never-exclusions': 'error',
     },
   },
 ])
@@ -83,12 +83,9 @@ Releases are automated with
    entries.
 3. Merge the release PR. Once the CI job passes on main, the release job
    publishes the new version to npmjs (via trusted publishing/OIDC, with
-   provenance) and re-publishes the identical tarball to GitHub Packages so
-   repos whose `.npmrc` maps `@alephic-ai` to `npm.pkg.github.com` resolve the
-   same version.
+   provenance).
 
-No npm tokens are involved: npmjs trusts the `ci.yml` workflow directly, and
-the GitHub Packages publish uses the workflow's ephemeral `GITHUB_TOKEN`.
+No npm tokens are involved: npmjs trusts the `ci.yml` workflow directly.
 
 ## License
 
