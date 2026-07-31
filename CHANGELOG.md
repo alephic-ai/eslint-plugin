@@ -1,5 +1,14 @@
 # @alephic-ai/eslint-plugin
 
+## 0.1.2
+
+### Patch Changes
+
+- [#7](https://github.com/alephic-ai/eslint-plugin/pull/7)
+  [`4a8b94e`](https://github.com/alephic-ai/eslint-plugin/commit/4a8b94e78b515fb64f37d4cac1b1b926899ed2c7)
+  Thanks [@gmathieu](https://github.com/gmathieu)! - Fix type compatibility with
+  ESLint's `defineConfig`
+
 ## 0.1.1
 
 ### Patch Changes
