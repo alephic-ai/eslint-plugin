@@ -1,6 +1,6 @@
 import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils'
 
-import { createRule } from './create-rule'
+import { createRule } from './create-rule.ts'
 
 export const rule = createRule({
   create(context) {

@@ -5,7 +5,7 @@
 
 import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils'
 
-import { createRule } from './create-rule'
+import { createRule } from './create-rule.ts'
 
 const TEST_CALLEES = new Set(['describe', 'it', 'test'])
 
