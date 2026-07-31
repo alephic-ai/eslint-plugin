@@ -6,6 +6,6 @@
     "@changesets/changelog-github",
     { "repo": "alephic-ai/eslint-plugin" }
   ],
-  "commit": false,
+  "commit": true,
   "updateInternalDependencies": "patch"
 }
