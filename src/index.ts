@@ -3,12 +3,10 @@ import type { ESLint, Linter } from 'eslint'
 import packageJson from '../package.json' with { type: 'json' }
 import { rule as symmetricNeverExclusions } from './rules/symmetric-never-exclusions.ts'
 import { rule as testExercisesCode } from './rules/test-exercises-code.ts'
-import { rule as useStepExportsOnly } from './rules/use-step-exports-only.ts'
 
 const rules = {
   'symmetric-never-exclusions': symmetricNeverExclusions,
   'test-exercises-code': testExercisesCode,
-  'use-step-exports-only': useStepExportsOnly,
 }
 
 // `configs.recommended` must reference the plugin object itself, so the
@@ -41,7 +39,6 @@ recommended.push({
   rules: {
     '@alephic/symmetric-never-exclusions': 'error',
     '@alephic/test-exercises-code': 'error',
-    '@alephic/use-step-exports-only': 'error',
   } satisfies Record<`@alephic/${keyof typeof rules}`, 'error' | 'off'>, // prevent rules from being forgotten
 })
 
