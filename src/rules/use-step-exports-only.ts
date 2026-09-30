@@ -7,7 +7,12 @@
 // alephic-intelligence-v2's Jul 5 outage (PR #1031). The fix pattern is to
 // move non-step logic into a sibling module.
 
-import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils'
+import {
+  AST_NODE_TYPES,
+  ASTUtils,
+  type TSESLint,
+  type TSESTree,
+} from '@typescript-eslint/utils'
 
 import { createRule } from './create-rule.ts'
 
@@ -17,11 +22,13 @@ import { createRule } from './create-rule.ts'
 // the specifier-export check to decide whether `export { name }` re-exports
 // a known step or a known non-step value. `hasDefaultExportedStep` covers
 // `export default` step functions, which may be anonymous and so can't be
-// represented in `stepNames`.
+// represented in `stepNames`. `retryTargetNames` and `numberConstNames` back
+// the `step.maxRetries = N` exemption (see `isRetryConfig`).
 function collectLocalBindings(program: TSESTree.Program) {
   const importedNames = new Set<string>()
   const nonStepValueNames = new Set<string>()
   const stepNames = new Set<string>()
+  const constInits = new Map<string, TSESTree.Expression>()
   let hasDefaultExportedStep = false
 
   const classifyFunction = (decl: TSESTree.FunctionDeclaration) => {
@@ -36,6 +43,9 @@ function collectLocalBindings(program: TSESTree.Program) {
   const classifyVariable = (decl: TSESTree.VariableDeclaration) => {
     for (const declarator of decl.declarations) {
       if (declarator.id.type !== AST_NODE_TYPES.Identifier) continue
+      if (decl.kind === 'const' && declarator.init !== null) {
+        constInits.set(declarator.id.name, declarator.init)
+      }
       if (isStepFunctionInit(declarator.init)) {
         stepNames.add(declarator.id.name)
       } else {
@@ -129,7 +139,32 @@ function collectLocalBindings(program: TSESTree.Program) {
     }
   }
 
-  return { hasDefaultExportedStep, importedNames, nonStepValueNames, stepNames }
+  // Resolved after the walk because function declarations hoist: an alias
+  // may precede its step. A `const` alias of a local step — bare
+  // (`const c: typeof fooStep & { maxRetries?: number } = fooStep`) or cast
+  // (`const c = fooStep as ...`) — is a retry target like the step itself.
+  const retryTargetNames = new Set(stepNames)
+  const numberConstNames = new Set<string>()
+  for (const [name, init] of constInits) {
+    const aliased =
+      init.type === AST_NODE_TYPES.TSAsExpression ? init.expression : init
+    if (
+      aliased.type === AST_NODE_TYPES.Identifier &&
+      stepNames.has(aliased.name)
+    ) {
+      retryTargetNames.add(name)
+    }
+    if (isNumberLiteral(init)) numberConstNames.add(name)
+  }
+
+  return {
+    hasDefaultExportedStep,
+    importedNames,
+    nonStepValueNames,
+    numberConstNames,
+    retryTargetNames,
+    stepNames,
+  }
 }
 
 // Walk up from `node` through parents. Return the direct child of Program
@@ -189,6 +224,59 @@ function hasUseStepDirective(
   )
 }
 
+// `new Set([...])` whose elements are all string/number/boolean literals, with
+// `Set` resolving to the global. It imports nothing, so it can't drag an import
+// chain into the workflow VM bundle. The global resolves to nothing when the
+// config doesn't declare ES globals, or to a variable with no definitions
+// (ESLint / TS lib globals); an import or local declaration has definitions.
+function isLiteralSet(
+  node: TSESTree.NewExpression,
+  sourceCode: Readonly<TSESLint.SourceCode>,
+) {
+  if (node.callee.type !== AST_NODE_TYPES.Identifier) return false
+  if (node.callee.name !== 'Set') return false
+  const [arg, ...rest] = node.arguments
+  if (rest.length > 0) return false
+  if (arg !== undefined) {
+    if (arg.type !== AST_NODE_TYPES.ArrayExpression) return false
+    const allLiterals = arg.elements.every(
+      (el) =>
+        el?.type === AST_NODE_TYPES.Literal &&
+        ['boolean', 'number', 'string'].includes(typeof el.value),
+    )
+    if (!allLiterals) return false
+  }
+  const variable = ASTUtils.findVariable(sourceCode.getScope(node), 'Set')
+  return variable === null || variable.defs.length === 0
+}
+
+function isNumberLiteral(node: TSESTree.Node) {
+  return node.type === AST_NODE_TYPES.Literal && typeof node.value === 'number'
+}
+
+// `fooStep.maxRetries = N` is the Workflow DevKit's retry config and has to sit
+// in the step's own module. Exempt only when the target is a local step (or a
+// `const` alias of one) and `N` is a number literal or a top-level `const`
+// holding one — an imported or computed value could pull in an import chain.
+function isRetryConfig(
+  node: TSESTree.AssignmentExpression,
+  bindings: ReturnType<typeof collectLocalBindings>,
+) {
+  if (node.operator !== '=') return false
+  const { left, right } = node
+  if (left.type !== AST_NODE_TYPES.MemberExpression || left.computed)
+    return false
+  if (left.property.type !== AST_NODE_TYPES.Identifier) return false
+  if (left.property.name !== 'maxRetries') return false
+  if (left.object.type !== AST_NODE_TYPES.Identifier) return false
+  if (!bindings.retryTargetNames.has(left.object.name)) return false
+  if (isNumberLiteral(right)) return true
+  return (
+    right.type === AST_NODE_TYPES.Identifier &&
+    bindings.numberConstNames.has(right.name)
+  )
+}
+
 function isStepFunctionInit(node: null | TSESTree.Node | undefined) {
   if (node === null || node === undefined) return false
   if (
@@ -203,6 +291,7 @@ function isStepFunctionInit(node: null | TSESTree.Node | undefined) {
 
 export const rule = createRule({
   create(context) {
+    let bindings: ReturnType<typeof collectLocalBindings> | undefined
     let hasStep = false
     const reportedTopLevel = new Set<TSESTree.Node>()
 
@@ -210,7 +299,19 @@ export const rule = createRule({
       ':matches(AwaitExpression, AssignmentExpression, CallExpression, NewExpression, TaggedTemplateExpression, UpdateExpression)'(
         node: TSESTree.Node,
       ) {
-        if (!hasStep) return
+        if (!hasStep || bindings === undefined) return
+        if (
+          node.type === AST_NODE_TYPES.NewExpression &&
+          isLiteralSet(node, context.sourceCode)
+        ) {
+          return
+        }
+        if (
+          node.type === AST_NODE_TYPES.AssignmentExpression &&
+          isRetryConfig(node, bindings)
+        ) {
+          return
+        }
         const topLevel = findTopLevelStatement(node)
         if (topLevel === null) return
 
@@ -257,7 +358,7 @@ export const rule = createRule({
         }
       },
       'Program'(program) {
-        const bindings = collectLocalBindings(program)
+        bindings = collectLocalBindings(program)
         hasStep = bindings.stepNames.size > 0 || bindings.hasDefaultExportedStep
         if (!hasStep) return
 
@@ -315,9 +416,12 @@ export const rule = createRule({
               continue
             }
             const inner = stmt.declaration
+            // Overload signatures and `export declare function` are
+            // `TSDeclareFunction`s: no body, erased like the types.
             if (
               inner.type === AST_NODE_TYPES.TSTypeAliasDeclaration ||
-              inner.type === AST_NODE_TYPES.TSInterfaceDeclaration
+              inner.type === AST_NODE_TYPES.TSInterfaceDeclaration ||
+              inner.type === AST_NODE_TYPES.TSDeclareFunction
             ) {
               continue
             }
@@ -361,6 +465,10 @@ export const rule = createRule({
 
           if (stmt.type === AST_NODE_TYPES.ExportDefaultDeclaration) {
             if (isStepFunctionInit(stmt.declaration)) continue
+            // `export default function f(): T` overload signature.
+            if (stmt.declaration.type === AST_NODE_TYPES.TSDeclareFunction) {
+              continue
+            }
             context.report({
               data: { name: 'this export' },
               messageId: 'nonStepExport',

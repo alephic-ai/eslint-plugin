@@ -39,7 +39,7 @@ ruleTester.run('use-step-exports-only', rule, {
           'use step'
           return 1
         }
-        const KNOWN_NAMES = new Set(['a', 'b'])
+        const KNOWN_NAMES = new Map([['a', 1]])
       `,
       errors: [{ messageId: 'sideEffect' }],
       name: 'step file + top-level new expression',
@@ -246,7 +246,7 @@ ruleTester.run('use-step-exports-only', rule, {
           return 1
         }
         class Foo {
-          static items = new Set(['a'])
+          static items = new Map([['a', 1]])
         }
       `,
       // A static field initializer runs when the class is defined (module
@@ -267,8 +267,424 @@ ruleTester.run('use-step-exports-only', rule, {
       errors: [{ data: { name: 'Color' }, messageId: 'nonStepExport' }],
       name: 'step file + specifier export of locally-declared enum',
     },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        function helper() { return 1 }
+        helper.maxRetries = 0
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries on a non-step function',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        import { otherStep } from './other'
+        otherStep.maxRetries = 0
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries on an imported step',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        let fooStepConfig = fooStep
+        fooStepConfig.maxRetries = 0
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries through a let alias',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        var fooStepConfig = fooStep
+        fooStepConfig.maxRetries = 0
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries through a var alias',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        import { otherStep } from './other'
+        const otherStepConfig = otherStep as typeof otherStep & { maxRetries?: number }
+        otherStepConfig.maxRetries = 0
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries through an alias of an imported function',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        fooStep.retries = 0
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'step property other than maxRetries',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        fooStep.maxRetries = compute()
+        function compute() { return 3 }
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries assigned a call',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        import { MAX } from './config'
+        fooStep.maxRetries = MAX
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries assigned an imported binding',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        let MAX = 3
+        fooStep.maxRetries = MAX
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'maxRetries assigned a let binding',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        export function barStep(a: string): string
+        export function barStep(a: number): number
+        export function barStep(a: unknown) { return a }
+      `,
+      errors: [
+        { data: { name: 'barStep' }, line: 8, messageId: 'nonStepExport' },
+      ],
+      name: 'overloads + non-step implementation reports once, on the implementation',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([x])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with identifier element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([...['a']])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with spread element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([f()])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with call element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([\`a\`])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with template literal element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([-1])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with negative number element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([null])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with null element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([/a/])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with regex element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set([1n])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with bigint element',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set(['a'], undefined)
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with a second argument',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set(LIST)
+        const LIST = ['a']
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set with a non-array argument',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        import { Set } from './set'
+        const S = new Set(['a'])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set shadowed by an import',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        class Set { constructor(_: unknown) {} }
+        const S = new Set(['a'])
+      `,
+      errors: [{ messageId: 'sideEffect' }],
+      name: 'new Set shadowed by a local class',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        export const S = new Set(['a'])
+      `,
+      errors: [{ data: { name: 'S' }, messageId: 'nonStepExport' }],
+      name: 'exported literal Set is still a non-step export',
+    },
   ],
   valid: [
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        fooStep.maxRetries = 5
+      `,
+      name: 'maxRetries on a local step',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const fooStepConfig: typeof fooStep & { maxRetries?: number } = fooStep
+        fooStepConfig.maxRetries = 0
+      `,
+      name: 'maxRetries through a type-annotated const alias',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const fooStepConfig = fooStep as typeof fooStep & { maxRetries?: number }
+        fooStepConfig.maxRetries = 0
+      `,
+      name: 'maxRetries through an as-cast const alias',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const MAX_RETRIES = 20
+        fooStep.maxRetries = MAX_RETRIES
+      `,
+      name: 'maxRetries assigned a top-level number const',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const early: typeof barStep & { maxRetries?: number } = barStep
+        early.maxRetries = 1
+        async function barStep() {
+          'use step'
+        }
+      `,
+      name: 'maxRetries through an alias declared before its hoisted step',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        export function barStep(a: string): Promise<string>
+        export function barStep(a: number): Promise<number>
+        export async function barStep(a: unknown) {
+          'use step'
+          return a
+        }
+      `,
+      name: 'overload signatures + use step implementation',
+    },
+    {
+      code: `
+        export default function run(a: string): Promise<string>
+        export default function run(a: number): Promise<number>
+        export default async function run(a: unknown) {
+          'use step'
+          return a
+        }
+      `,
+      name: 'default-export overload signatures + use step default implementation',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        export declare function ambient(): void
+      `,
+      name: 'export declare function',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const A = new Set(['a', 'b'])
+        const B = new Set<number>([1, 2])
+        const C = new Set([true])
+        const D = new Set([])
+        const E = new Set()
+      `,
+      name: 'literal-only Sets',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        class Foo {
+          static items = new Set(['a'])
+        }
+      `,
+      name: 'literal-only Set in a static class field',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set(['a'])
+      `,
+      languageOptions: { globals: { Set: 'readonly' } },
+      name: 'literal-only Set with Set declared as a config global',
+    },
+    {
+      code: `
+        export async function fooStep() {
+          'use step'
+          return 1
+        }
+        const S = new Set(['a'])
+      `,
+      // No TS lib and ES5 globals: nothing declares `Set`, so the reference
+      // resolves to nothing — still the global.
+      languageOptions: {
+        // @ts-expect-error -- ESLint accepts `ecmaVersion` here; typescript-eslint's `TestLanguageOptions` omits it
+        ecmaVersion: 5,
+        parserOptions: { lib: [] },
+      },
+      name: 'literal-only Set with no Set global declared',
+    },
     {
       code: `
         export async function fooStep() {
