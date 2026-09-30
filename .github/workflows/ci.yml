@@ -150,8 +150,9 @@ jobs:
           pnpm changeset publish
           git push --follow-tags
 
-          # changesets/action used to create the GitHub release; do it here.
-          # No-op when nothing was released (the current tag has one already).
+          # Create the GitHub release for the current version's tag, with
+          # that version's CHANGELOG section as notes. No-op when nothing was
+          # released (the current tag has a release already).
           version=$(node -p "require('./package.json').version")
           if ! gh release view "v$version" > /dev/null 2>&1; then
             awk -v v="$version" '/^## /{if(f)exit; f=($2==v); next} f' CHANGELOG.md \
