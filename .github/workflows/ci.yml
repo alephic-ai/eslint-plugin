@@ -158,9 +158,7 @@ jobs:
               | gh release create "v$version" --verify-tag --title "v$version" --notes-file -
           fi
         env:
-          # @changesets/changelog-github reads PR/author info during
-          # `changeset version`.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # `gh release create` needs contents: write, which only the app
-          # token has in this job.
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # Read by @changesets/changelog-github (PR/author info during
+          # `changeset version`) and by gh (`gh release create` needs
+          # contents: write, which only the app token has in this job).
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
