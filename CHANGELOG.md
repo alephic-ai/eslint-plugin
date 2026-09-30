@@ -1,5 +1,14 @@
 # @alephic-ai/eslint-plugin
 
+## 0.1.3
+
+### Patch Changes
+
+- - Fix use-step-exports-only to stop flagging step retry config
+    (`fooStep.maxRetries = N`), exported overload signatures, and literal `Set`s
+    as non-step exports
+    ([#10](https://github.com/alephic-ai/eslint-plugin/issues/10))
+
 ## 0.1.2
 
 ### Patch Changes
