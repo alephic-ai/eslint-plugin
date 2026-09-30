@@ -24,6 +24,20 @@ containing a call, `new`, `await`, tagged template, assignment, or
 increment/decrement expression, plus side-effect-only imports
 (`import './x'`).
 
+Three shapes that can't pull in an import chain are exempt:
+
+- **Step retry config**: `fooStep.maxRetries = N`, the Workflow DevKit's retry
+  API, which has to sit in the step's own module. The target must be a local
+  step, or a local `const` alias of one (`const c: typeof fooStep & { maxRetries?: number } = fooStep`
+  or `const c = fooStep as ...`). `N` must be a number literal or a top-level
+  `const` initialized with one.
+- **Overload signatures**: `export function f(a: string): string` without a
+  body (named or default export), and `export declare function`. They have no
+  runtime code. A non-step implementation behind them is still reported once.
+- **Literal Sets**: `new Set([...])` whose elements are all string, number, or
+  boolean literals (or no elements), where `Set` is the global. Exporting one
+  is still a non-step export.
+
 Re-exports of bindings declared in the same file are resolved semantically
 (a step is a function whose body starts with `'use step'`). Cross-file
 re-exports (`export { x } from './y'`) and re-exports of imported bindings
@@ -46,7 +60,7 @@ export function plainHelper() {
   return 2
 }
 
-const KNOWN = new Set(['a']) // side-effectful module-level statement
+const KNOWN = new Map([['a', 1]]) // side-effectful module-level statement
 ```
 
 ✅ Correct:
@@ -59,4 +73,6 @@ export async function fooStep() {
 
 export type FooResult = { ok: boolean } // type-only exports are fine
 const N = 3 // pure literal initializers are fine
+const KINDS = new Set(['a', 'b']) // literal-only Sets are fine
+fooStep.maxRetries = 5 // step retry config is fine
 ```
