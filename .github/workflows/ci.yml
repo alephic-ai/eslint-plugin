@@ -149,7 +149,18 @@ jobs:
 
           pnpm changeset publish
           git push --follow-tags
+
+          # changesets/action used to create the GitHub release; do it here.
+          # No-op when nothing was released (the current tag has one already).
+          version=$(node -p "require('./package.json').version")
+          if ! gh release view "v$version" > /dev/null 2>&1; then
+            awk -v v="$version" '/^## /{if(f)exit; f=($2==v); next} f' CHANGELOG.md \
+              | gh release create "v$version" --verify-tag --title "v$version" --notes-file -
+          fi
         env:
           # @changesets/changelog-github reads PR/author info during
           # `changeset version`.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # `gh release create` needs contents: write, which only the app
+          # token has in this job.
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
