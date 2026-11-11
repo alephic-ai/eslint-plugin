@@ -24,7 +24,7 @@ function file(filename: string, code: string) {
 function invalid(
   filename: string,
   code: string,
-  ...messageIds: ('inlineAction' | 'unwrapped')[]
+  ...messageIds: ('inlineAction' | 'unnamedExport' | 'unwrapped')[]
 ) {
   return {
     ...file(filename, code),
@@ -63,6 +63,13 @@ new RuleTester({
       'export default requirePageAuth(() => null)\nexport async function generateMetadata() { return {} }',
       'unwrapped',
     ),
+    // Exports the rule can't name could hide generateMetadata
+    invalid(
+      'src/app/page.tsx',
+      "export default requirePageAuth(() => null)\nexport * from './metadata'\nexport const { generateMetadata } = metadata",
+      'unnamedExport',
+      'unnamedExport',
+    ),
     // A layout's metadata needs the layout metadata wrapper
     invalid(
       'src/app/(protected)/layout.tsx',
@@ -84,8 +91,8 @@ new RuleTester({
       'src/app/api/notes/route.ts',
       "export { GET } from './handlers'\nexport * from './more-handlers'\nexport const { POST } = handlers",
       'unwrapped',
-      'unwrapped',
-      'unwrapped',
+      'unnamedExport',
+      'unnamedExport',
     ),
     invalid(
       'src/notes/note-actions.ts',

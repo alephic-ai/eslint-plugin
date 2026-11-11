@@ -16,7 +16,9 @@ every server entry point decide for itself by requiring it to be exported as a
 - Each HTTP method a `route` file exports
 - Each export of a `'use server'` file
 
-It also reports inline `'use server'` functions, which can't be wrapped.
+It also reports inline `'use server'` functions, which can't be wrapped, and
+`export *` or destructured exports in those files, which hide the names they
+export.
 
 A wrapper only counts when it's imported, from any module, so a local function
 with the same name doesn't. Use `files` and `ignores` to choose where the rule

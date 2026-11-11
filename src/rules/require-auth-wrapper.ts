@@ -1,13 +1,7 @@
-// Require Next.js server entry points (pages, layouts, route handlers and
-// server actions) to be exported as a direct call to an auth wrapper, so none
-// can ship without deciding who may reach it. The defaults match the wrappers
-// in Alephic's create-app template.
-
 import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils'
 
 import { createRule } from './create-rule.ts'
 
-// A kind you pass replaces its default, `skip` included; the others keep theirs
 export type Options = Partial<Record<Kind, Wrappers>>
 
 // The wrappers a kind of entry point accepts. A page or layout wrapped with a
@@ -32,7 +26,7 @@ const defaults: Record<Kind, Wrappers> = {
 interface Export {
   name: string
   node: TSESTree.Node
-  value?: null | TSESTree.Node
+  value: null | TSESTree.Node | undefined
 }
 
 const nameList = {
@@ -46,7 +40,10 @@ const wrappersSchema = {
   type: 'object',
 } as const
 
-export const rule = createRule<[Options], 'inlineAction' | 'unwrapped'>({
+export const rule = createRule<
+  [Options],
+  'inlineAction' | 'unnamedExport' | 'unwrapped'
+>({
   create(context) {
     const configured = { ...defaults, ...context.options.at(0) }
     // Next.js entry files under an app directory, with their kind
@@ -75,7 +72,7 @@ export const rule = createRule<[Options], 'inlineAction' | 'unwrapped'>({
       if (wrapper !== undefined && allowed.includes(wrapper)) return
       context.report({
         data: { name, wrappers: list(allowed) },
-        messageId: 'unwrapped',
+        messageId: name === '*' ? 'unnamedExport' : 'unwrapped',
         node,
       })
     }
@@ -141,13 +138,13 @@ export const rule = createRule<[Options], 'inlineAction' | 'unwrapped'>({
 
         const isPage = kind === 'page' || kind === 'default'
         const component = isPage ? 'page' : 'layout'
+        const { require = [], skip = [] } = configured[component]
         const defaultExport = found.find(({ name }) => name === 'default')
-        if (defaultExport) check(defaultExport, accepted(component))
+        if (defaultExport) check(defaultExport, [...require, ...skip])
         const wrapper = wrapperOf(defaultExport?.value)
-        const skip = configured[component].skip ?? []
         if (wrapper !== undefined && skip.includes(wrapper)) return
         for (const entry of found) {
-          if (entry.name === 'generateMetadata') {
+          if (entry.name === '*' || entry.name === 'generateMetadata') {
             check(entry, accepted(isPage ? 'pageMetadata' : 'layoutMetadata'))
           }
         }
@@ -163,6 +160,8 @@ export const rule = createRule<[Options], 'inlineAction' | 'unwrapped'>({
     messages: {
       inlineAction:
         "Inline server actions can't be wrapped. Export the action from a 'use server' file, wrapped with {{wrappers}}.",
+      unnamedExport:
+        "`export *` and destructured exports hide which names they export, so this rule can't check that they're wrapped. Rewrite this as one `export const <name> = <wrapper>(...)` per entry point it exports, where <wrapper> is {{wrappers}}.",
       unwrapped:
         '`{{name}}` is a server entry point, so export it as a direct call to {{wrappers}}.',
     },
@@ -207,7 +206,7 @@ function exportsOf(statement: TSESTree.ProgramStatement): Export[] {
   if (statement.type === AST_NODE_TYPES.ExportAllDeclaration) {
     return statement.exportKind === 'type'
       ? []
-      : [{ name: '*', node: statement }]
+      : [{ name: '*', node: statement, value: undefined }]
   }
   if (statement.type === AST_NODE_TYPES.ExportDefaultDeclaration) {
     return [{ name: 'default', node: statement, value: statement.declaration }]
@@ -229,25 +228,30 @@ function exportsOf(statement: TSESTree.ProgramStatement): Export[] {
       value: declarator.init,
     }))
   }
-  if (declaration?.type === AST_NODE_TYPES.FunctionDeclaration) {
-    return [{ name: declaration.id?.name ?? '*', node: declaration }]
+  if (
+    declaration?.type === AST_NODE_TYPES.ClassDeclaration ||
+    declaration?.type === AST_NODE_TYPES.FunctionDeclaration
+  ) {
+    return [
+      {
+        name: declaration.id?.name ?? '*',
+        node: declaration,
+        value: undefined,
+      },
+    ]
   }
-  if (declaration) {
-    // Types, interfaces and ambient declarations export nothing at runtime
-    return declaration.type.startsWith('TS')
-      ? []
-      : [{ name: '*', node: declaration }]
-  }
+  // Types, interfaces and ambient declarations export nothing at runtime
+  if (declaration) return []
   return statement.specifiers
     .filter((specifier) => specifier.exportKind !== 'type')
-    .map((specifier) => {
-      // `export { x as 'some name' }` can't be a Next.js export
-      const { exported } = specifier
-      return {
-        name: exported.type === AST_NODE_TYPES.Identifier ? exported.name : '*',
-        node: specifier,
-      }
-    })
+    .map((specifier) => ({
+      name:
+        specifier.exported.type === AST_NODE_TYPES.Identifier
+          ? specifier.exported.name
+          : specifier.exported.value,
+      node: specifier,
+      value: undefined,
+    }))
 }
 
 function list(names: string[]) {
