@@ -41,13 +41,15 @@ export default defineConfig([
 <!-- begin auto-generated rules list -->
 
 💼 Configurations enabled in.\
+🚫 Configurations disabled in.\
 ✅ Set in the `recommended` configuration.\
 🔧 Automatically fixable by the [`--fix` CLI option](https://eslint.org/docs/user-guide/command-line-interface#--fix).
 
-| Name                                                                   | Description                                                                                                                                                    | 💼 | 🔧 |
-| :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- | :- | :- |
-| [symmetric-never-exclusions](docs/rules/symmetric-never-exclusions.md) | Enforce symmetric ?: never exclusions in discriminated union types                                                                                             | ✅  | 🔧 |
-| [test-exercises-code](docs/rules/test-exercises-code.md)               | Require test describe/it titles to name identifiers that the file actually references, so tests exercise the real code instead of a parallel reimplementation. | ✅  |    |
+| Name                                                                   | Description                                                                                                                                                    | 💼 | 🚫 | 🔧 |
+| :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- | :- | :- | :- |
+| [require-auth-wrapper](docs/rules/require-auth-wrapper.md)             | Require Next.js pages, layouts, route handlers and server actions to be exported as a direct call to an auth wrapper                                           |    | ✅  |    |
+| [symmetric-never-exclusions](docs/rules/symmetric-never-exclusions.md) | Enforce symmetric ?: never exclusions in discriminated union types                                                                                             | ✅  |    | 🔧 |
+| [test-exercises-code](docs/rules/test-exercises-code.md)               | Require test describe/it titles to name identifiers that the file actually references, so tests exercise the real code instead of a parallel reimplementation. | ✅  |    |    |
 
 <!-- end auto-generated rules list -->
 
