@@ -1,10 +1,12 @@
 import type { ESLint, Linter } from 'eslint'
 
 import packageJson from '../package.json' with { type: 'json' }
+import { rule as requireAuthWrapper } from './rules/require-auth-wrapper.ts'
 import { rule as symmetricNeverExclusions } from './rules/symmetric-never-exclusions.ts'
 import { rule as testExercisesCode } from './rules/test-exercises-code.ts'
 
 const rules = {
+  'require-auth-wrapper': requireAuthWrapper,
   'symmetric-never-exclusions': symmetricNeverExclusions,
   'test-exercises-code': testExercisesCode,
 }
@@ -37,6 +39,7 @@ recommended.push({
   name: '@alephic/recommended',
   plugins: { '@alephic': plugin },
   rules: {
+    '@alephic/require-auth-wrapper': 'off',
     '@alephic/symmetric-never-exclusions': 'error',
     '@alephic/test-exercises-code': 'error',
   } satisfies Record<`@alephic/${keyof typeof rules}`, 'error' | 'off'>, // prevent rules from being forgotten
