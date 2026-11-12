@@ -61,6 +61,12 @@ export const rule = createRule<
     }
 
     function wrapperOf(value: null | TSESTree.Node | undefined) {
+      if (
+        value?.type === AST_NODE_TYPES.TSAsExpression ||
+        value?.type === AST_NODE_TYPES.TSSatisfiesExpression
+      ) {
+        return wrapperOf(value.expression)
+      }
       return value?.type === AST_NODE_TYPES.CallExpression &&
         value.callee.type === AST_NODE_TYPES.Identifier
         ? imported.get(value.callee.name)
@@ -107,6 +113,10 @@ export const rule = createRule<
                   ? name.name
                   : name.value,
               )
+            }
+            // A default export has no name of its own, so the importer's counts
+            if (specifier.type === AST_NODE_TYPES.ImportDefaultSpecifier) {
+              imported.set(specifier.local.name, specifier.local.name)
             }
           }
         }

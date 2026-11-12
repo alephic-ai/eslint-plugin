@@ -160,6 +160,15 @@ new RuleTester({
       code: "import { requirePageAuth as authed } from '../../auth/require-auth'\nexport default authed(() => null)",
       filename: 'src/app/notes/page.tsx',
     },
+    {
+      code: "import requirePageAuth from '@/auth/require-page-auth'\nexport default requirePageAuth(() => null)",
+      filename: 'src/app/page.tsx',
+    },
+    // Type assertions don't change what runs
+    file(
+      'src/app/api/notes/route.ts',
+      'export const GET = requireRouteAuth(() => new Response()) satisfies RouteHandler\nexport const POST = requireRouteAuth(() => new Response()) as RouteHandler',
+    ),
     // A configured skip wrapper also exempts the page's metadata
     {
       code: "import { openPage } from '~/lib/session'\nexport default openPage(() => null)\nexport function generateMetadata() { return {} }",

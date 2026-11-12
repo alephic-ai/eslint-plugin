@@ -21,7 +21,8 @@ It also reports inline `'use server'` functions, which can't be wrapped, and
 export.
 
 A wrapper only counts when it's imported, from any module, so a local function
-with the same name doesn't. Use `files` and `ignores` to choose where the rule
+with the same name doesn't, and a default import counts under the name it's imported
+as. Use `files` and `ignores` to choose where the rule
 runs. It doesn't check workflow steps or other
 files Next.js serves, such as `sitemap.ts` and `opengraph-image.tsx`.
 
