@@ -1,5 +1,13 @@
 # @alephic-ai/eslint-plugin
 
+## 0.3.0
+
+### Minor Changes
+
+- - Add the require-auth-wrapper rule, which requires Next.js pages, layouts,
+    route handlers and server actions to be exported as a direct call to an auth
+    wrapper ([#14](https://github.com/alephic-ai/eslint-plugin/issues/14))
+
 ## 0.2.0
 
 ### Minor Changes

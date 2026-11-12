@@ -1,6 +1,6 @@
 {
   "name": "@alephic/eslint-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Alephic's custom ESLint rules",
   "keywords": [
     "eslint",
